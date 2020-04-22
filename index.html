@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Kicker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font: 13px Helvetica, Arial;
+        }
+
+        form {
+            background: #000;
+            padding: 3px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+
+        form input {
+            border: 0;
+            padding: 10px;
+            width: 90%;
+            margin-right: 0.5%;
+        }
+
+        form button {
+            width: 9%;
+            background: rgb(130, 224, 255);
+            border: none;
+            padding: 10px;
+        }
+
+        #messages {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        #messages li {
+            padding: 5px 10px;
+        }
+
+        #messages li:nth-child(odd) {
+            background: #eee;
+        }
+    </style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<script src="/public/pixijs/pixi.js"></script>
+<script src="/public/socket.io/socket.io.js"></script>
+<script>
+    let socket = io.connect('http://localhost:3030', {reconnect: true});
+
+    const canvas = document.getElementById('game');
+    let app = new PIXI.Application({
+        view: canvas,
+        width: window.innerWidth,
+        height: window.innerHeight,
+        antialias: true,
+        transparent: false,
+        resolution: 1
+    });
+
+    let sprite = PIXI.Sprite.from('public/sprites/man.png');
+
+    sprite.x = app.renderer.width / 2;
+    sprite.y = app.renderer.height / 2;
+    sprite.anchor.x = 0.5;
+    sprite.anchor.y = 0.5;
+    sprite.interactive = true;
+    app.stage.addChild(sprite);
+
+    socket.on('tick', (rotation) => {
+        sprite.rotation = rotation;
+    });
+
+    sprite.on("click", () => {
+        socket.emit('ClickyClicky');
+    });
+
+    // socket.on('position', (position) => {
+    //     c
+    // });
+</script>
+</body>
+</html>

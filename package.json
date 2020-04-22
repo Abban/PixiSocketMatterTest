@@ -1,0 +1,23 @@
+{
+    "name": "kicker",
+    "version": "1.0.0",
+    "dependencies": {
+        "express": "^4.17.1",
+        "matter-js": "^0.14.2",
+        "pixi.js": "^5.2.2",
+        "socket.io": "^2.3.0"
+    },
+    "description": "kicker",
+    "main": "index.js",
+    "devDependencies": {
+        "@babel/core": "^7.9.0",
+        "@babel/node": "^7.8.7",
+        "@babel/preset-env": "^7.9.5"
+    },
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "serve": "nodemon index.js --exec babel-node"
+    },
+    "author": "",
+    "license": "ISC"
+}
