@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sprite Swap</title>
+</head>
+<body>
+
+<script src="/resources/pixijs/pixi.js"></script>
+<script src="/resources/socket.io/socket.io.js"></script>
+<script>
+    const app = new PIXI.Application({ backgroundColor: 0x6AAF1F });
+    document.body.appendChild(app.view);
+
+    // create a texture from an image path
+    const texture = PIXI.Texture.from('resources/sprites/Blue-Man.png');
+
+    // create a second texture
+    const secondTexture = PIXI.Texture.from('resources/sprites/Blue-Man-Kick.png');
+
+    // create a new Sprite using the texture
+    const dude = new PIXI.Sprite.from(texture);
+
+    // center the sprites anchor point
+    dude.anchor.set(0.5);
+
+    // move the sprite to the center of the screen
+    dude.x = app.screen.width / 2;
+    dude.y = app.screen.height / 2;
+
+    app.stage.addChild(dude);
+
+    // make the sprite interactive
+    dude.interactive = true;
+    dude.buttonMode = true;
+
+    dude.on('mousedown', () => {
+        dude.texture = secondTexture;
+    });
+
+    dude.on('mouseup', () => {
+        dude.texture = texture;
+    });
+
+    dude.on('mouseupoutside', () => {
+        dude.texture = texture;
+    });
+
+    // app.ticker.add(() => {
+    //     // just for fun, let's rotate mr rabbit a little
+    //     dude.rotation += 0.1;
+    // });
+
+</script>
+</body>
+</html>

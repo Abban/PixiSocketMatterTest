@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sprite Drag</title>
+</head>
+<body>
+
+<script src="/resources/pixijs/pixi.js"></script>
+<script src="/resources/socket.io/socket.io.js"></script>
+<script>
+    const app = new PIXI.Application({backgroundColor: 0x6AAF1F});
+    document.body.appendChild(app.view);
+
+    const texture = PIXI.Texture.from('resources/sprites/Blue-Man.png');
+    const handle = new PIXI.Sprite.from(texture);
+    handle.anchor.set(0.5);
+    handle.x = app.screen.width / 2;
+    handle.y = app.screen.height / 2;
+
+    app.stage.addChild(handle);
+
+    // make the sprite interactive
+    handle.interactive = true;
+    handle.buttonMode = true;
+
+    handle.on('pointerdown', onDragStart)
+        .on('pointerup', onDragEnd)
+        .on('pointerupoutside', onDragEnd)
+        .on('pointermove', onDragMove);
+
+
+    function onDragStart(event) {
+        console.log(event);
+        this.data = event.data;
+        this.startPositionY = this.y;
+        this.clickStartPosition = this.data.getLocalPosition(this.parent);
+        this.alpha = 0.5;
+        this.dragging = true;
+    }
+
+    function onDragEnd() {
+        this.alpha = 1;
+        this.dragging = false;
+        this.data = null;
+        this.startPositionY = null;
+    }
+
+    function onDragMove() {
+        if (!this.dragging) {
+            return;
+        }
+
+        const newPosition = this.data.getLocalPosition(this.parent);
+        const newPositionY = this.startPositionY - (this.clickStartPosition.y - newPosition.y);
+
+        if (newPositionY < this.height / 2) {
+            return;
+        }
+
+        if (newPositionY > app.screen.height - (this.height / 2)) {
+            return;
+        }
+
+        this.y = this.startPositionY - (this.clickStartPosition.y - newPosition.y);
+    }
+
+</script>
+</body>
+</html>

@@ -25,13 +25,6 @@ let rotation = 0;
 let FPS = 60;
 const tick = 1000/FPS;
 
-setInterval(() => {
-    Matter.Engine.update(engine, tick);
-    rotation += 0.1;
-    io.emit('tick', rotation);
-    // io.emit('position', imageBody.position);
-}, tick);
-
 app.use(express.static(__dirname));
 
 app.get('/', (req, res) => {
@@ -42,16 +35,52 @@ app.get('/matter', (req, res) => {
     res.sendFile(__dirname + '/pages/matter.html');
 });
 
+app.get('/sprite-swap', (req, res) => {
+    res.sendFile(__dirname + '/pages/sprite-swap.html');
+});
+
+app.get('/sprite-drag', (req, res) => {
+    res.sendFile(__dirname + '/pages/sprite-drag.html');
+});
+
+let spinner = null;
+let sockets = [];
 io.on('connection', (socket) => {
     console.log('a user connected');
 
-    socket.on('ClickyClicky', (from, msg) => {
-        console.log('ClickyClicky');
+    sockets.push(socket);
+    io.emit('user connected', sockets.length);
+
+    if(spinner === null) {
+        spinner = spin();
+    }
+
+    socket.on('mousedown', (from, msg) => {
+        clearInterval(spinner);
+        spinner = null;
+    });
+
+    socket.on('mouseup', (from, msg) => {
+        if(spinner === null) {
+            spinner = spin();
+        }
     });
 
     socket.on('disconnect', () => {
-        io.emit('user disconnected');
+        let index = sockets.indexOf( socket );
+        sockets.splice( index, 1 );
+
+        io.emit('user disconnected', sockets.length);
     });
 });
+
+const spin = () => {
+    return setInterval(() => {
+        Matter.Engine.update(engine, tick);
+        rotation += 0.1;
+        io.emit('tick', rotation);
+        // io.emit('position', imageBody.position);
+    }, tick);
+};
 
 app.listen(port, () => console.log(`listening on http://localhost:${port}`));
