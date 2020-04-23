@@ -54,8 +54,8 @@
 <body>
 <canvas id="game"></canvas>
 
-<script src="/public/pixijs/pixi.js"></script>
-<script src="/public/socket.io/socket.io.js"></script>
+<script src="/resources/pixijs/pixi.js"></script>
+<script src="/resources/socket.io/socket.io.js"></script>
 <script>
     let socket = io.connect('http://localhost:3030', {reconnect: true});
 
@@ -69,7 +69,7 @@
         resolution: 1
     });
 
-    let sprite = PIXI.Sprite.from('public/sprites/man.png');
+    let sprite = PIXI.Sprite.from('resources/sprites/man.png');
 
     sprite.x = app.renderer.width / 2;
     sprite.y = app.renderer.height / 2;

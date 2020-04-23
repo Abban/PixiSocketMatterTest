@@ -1160,7 +1160,7 @@ var PIXI = (function (exports) {
 	 * `EventEmitter` interface.
 	 *
 	 * @constructor
-	 * @public
+	 * @resources
 	 */
 	function EventEmitter() {
 	  this._events = new Events();
@@ -1172,7 +1172,7 @@ var PIXI = (function (exports) {
 	 * listeners.
 	 *
 	 * @returns {Array}
-	 * @public
+	 * @resources
 	 */
 	EventEmitter.prototype.eventNames = function eventNames() {
 	  var names = []
@@ -1197,7 +1197,7 @@ var PIXI = (function (exports) {
 	 *
 	 * @param {(String|Symbol)} event The event name.
 	 * @returns {Array} The registered listeners.
-	 * @public
+	 * @resources
 	 */
 	EventEmitter.prototype.listeners = function listeners(event) {
 	  var evt = prefix ? prefix + event : event
@@ -1218,7 +1218,7 @@ var PIXI = (function (exports) {
 	 *
 	 * @param {(String|Symbol)} event The event name.
 	 * @returns {Number} The number of listeners.
-	 * @public
+	 * @resources
 	 */
 	EventEmitter.prototype.listenerCount = function listenerCount(event) {
 	  var evt = prefix ? prefix + event : event
@@ -1234,7 +1234,7 @@ var PIXI = (function (exports) {
 	 *
 	 * @param {(String|Symbol)} event The event name.
 	 * @returns {Boolean} `true` if the event had listeners, else `false`.
-	 * @public
+	 * @resources
 	 */
 	EventEmitter.prototype.emit = function emit(event, a1, a2, a3, a4, a5) {
 	  var arguments$1 = arguments;
@@ -1297,7 +1297,7 @@ var PIXI = (function (exports) {
 	 * @param {Function} fn The listener function.
 	 * @param {*} [context=this] The context to invoke the listener with.
 	 * @returns {EventEmitter} `this`.
-	 * @public
+	 * @resources
 	 */
 	EventEmitter.prototype.on = function on(event, fn, context) {
 	  return addListener(this, event, fn, context, false);
@@ -1310,7 +1310,7 @@ var PIXI = (function (exports) {
 	 * @param {Function} fn The listener function.
 	 * @param {*} [context=this] The context to invoke the listener with.
 	 * @returns {EventEmitter} `this`.
-	 * @public
+	 * @resources
 	 */
 	EventEmitter.prototype.once = function once(event, fn, context) {
 	  return addListener(this, event, fn, context, true);
@@ -1324,7 +1324,7 @@ var PIXI = (function (exports) {
 	 * @param {*} context Only remove the listeners that have this context.
 	 * @param {Boolean} once Only remove one-time listeners.
 	 * @returns {EventEmitter} `this`.
-	 * @public
+	 * @resources
 	 */
 	EventEmitter.prototype.removeListener = function removeListener(event, fn, context, once) {
 	  var evt = prefix ? prefix + event : event;
@@ -1371,7 +1371,7 @@ var PIXI = (function (exports) {
 	 *
 	 * @param {(String|Symbol)} [event] The event name.
 	 * @returns {EventEmitter} `this`.
-	 * @public
+	 * @resources
 	 */
 	EventEmitter.prototype.removeAllListeners = function removeAllListeners(event) {
 	  var evt;
@@ -2574,7 +2574,7 @@ var PIXI = (function (exports) {
 
 		/*--------------------------------------------------------------------------*/
 
-		/** Define the public API */
+		/** Define the resources API */
 		punycode = {
 			/**
 			 * A string representing the current Punycode.js version number.
@@ -19446,7 +19446,7 @@ var PIXI = (function (exports) {
 	     * Forcing creation of stencil buffer for current framebuffer, if it wasn't done before.
 	     * Used by MaskSystem, when its time to use stencil mask for Graphics element.
 	     *
-	     * Its an alternative for public lazy `framebuffer.enableStencil`, in case we need stencil without rebind.
+	     * Its an alternative for resources lazy `framebuffer.enableStencil`, in case we need stencil without rebind.
 	     *
 	     * @private
 	     */

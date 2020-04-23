@@ -35,7 +35,11 @@ setInterval(() => {
 app.use(express.static(__dirname));
 
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/index.html');
+    res.sendFile(__dirname + '/pages/index.html');
+});
+
+app.get('/matter', (req, res) => {
+    res.sendFile(__dirname + '/pages/matter.html');
 });
 
 io.on('connection', (socket) => {
