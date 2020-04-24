@@ -8,20 +8,74 @@
         body {
             background: #fafafa;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
         }
         #game {
-
+            margin-top: 100px;
         }
         #physics {
             background: url("/resources/sprites/Edge.png") #6AAF1F center center no-repeat !important;
+            /*display: none;*/
+        }
+
+        #gui {
+            position: absolute;
+            top: 0;
+            font-family: 'Helvetica Neue';
+            font-weight: bold;
+            font-size: 40px;
+        }
+
+        #gui div {
+            display: inline-block;
+        }
+
+        #goal {
+            position: fixed;
             display: none;
+            height: 100%;
+            width: 100%;
+            top: 0;
+            z-index: 99;
+            background: rgba(0,0,0,0.9);
+        }
+
+        #goal.active {
+            display: block;
+        }
+
+        #goal-inner {
+            height: 200px;
+            width: 100%;
+            position: absolute;
+            top: 50%;
+            margin-top: -100px;
+            color: white;
+            font-family: 'Helvetica Neue', sans-serif;
+            font-weight: bold;
+            font-size: 100px;
+            text-align: center;
         }
     </style>
 
 </head>
 <body>
+
+<div id="gui">
+
+    <div>Red: <span id="score-red">0</span></div>
+    <div>Blue: <span id="score-blue">0</span></div>
+
+</div>
+
+<div id="goal">
+    <div id="goal-inner">
+        GOALLLLL!!!!!!!!
+    </div>
+</div>
+
 <canvas id="game"></canvas>
 <canvas id="physics"></canvas>
 
@@ -35,6 +89,9 @@
     let socket = io.connect('http://localhost:3030', {reconnect: true});
     const canvas = document.getElementById('game');
     const physicsCanvas = document.getElementById('physics');
+    const scoreRedElement = document.getElementById('score-red');
+    const scoreBlueElement = document.getElementById('score-blue');
+    const goalElement = document.getElementById('goal');
 
     const ballTexture = PIXI.Texture.from('resources/sprites/Ball.png');
     const pitchTexture = PIXI.Texture.from('resources/sprites/Pitch.png');
@@ -45,6 +102,23 @@
     const redManKickTexture = PIXI.Texture.from('resources/sprites/Red-Man-Kick.png');
     const blueManTexture = PIXI.Texture.from('resources/sprites/Blue-Man.png');
     const blueManKickTexture = PIXI.Texture.from('resources/sprites/Blue-Man-Kick.png');
+
+    let bonks = [
+        new Audio('resources/sound/bonk_1.wav'),
+        new Audio('resources/sound/bonk_2.wav'),
+        new Audio('resources/sound/bonk_3.wav'),
+        new Audio('resources/sound/bonk_4.wav'),
+        new Audio('resources/sound/bonk_5.wav'),
+        new Audio('resources/sound/bonk_6.wav'),
+        new Audio('resources/sound/bonk_7.wav'),
+        new Audio('resources/sound/bonk_8.wav')
+    ];
+    let goalsfx = new Audio('resources/sound/goal.wav');
+
+    let scores = {
+        red: 0,
+        blue: 0
+    };
 
     const globalCollisions = 0x0001,
         noCollisions = 0x0002;
@@ -88,6 +162,29 @@
     });
 
     World.add(world, edgeColliders);
+
+    let goals = [];
+    settings.goals.forEach(goal => {
+        goals.push(
+            Bodies.rectangle(
+                goal.x + (goal.width / 2),
+                goal.y + (goal.height / 2),
+                goal.width,
+                goal.height,
+                {
+                    isSensor: true,
+                    isStatic: true,
+                    label: goal.label,
+                    fillStyle: 'transparent',
+                    collisionFilter: {category: globalCollisions},
+                }
+            )
+        );
+    });
+
+    World.add(world, goals);
+
+    console.log(goals);
 
     let ball = Bodies.circle(
         settings.windowCenter.x,
@@ -305,22 +402,20 @@
     Events.on(engine, 'collisionStart', function (event) {
         let pairs = event.pairs;
 
+        let sfxIndex = Math.floor(Math.random() * 7) + 1;
+        bonks[sfxIndex].play();
+
         // change object colours to show those starting a collision
         for (let i = 0; i < pairs.length; i++) {
             let pair = pairs[i];
 
-            let kicker = getCollisionObject('kicker', pair);
             let ball = getCollisionObject('ball', pair);
+            let kicker = getCollisionObject('kicker', pair);
 
             if (kicker && ball) {
                 let direction = Vector.normalise({
                     x: kicker.position.x - ball.position.x,
                     y: kicker.position.y - ball.position.y
-                });
-
-                console.log({
-                    x: direction.x * currentKickVelocity,
-                    y: direction.y * currentKickVelocity
                 });
 
                 Body.setVelocity(
@@ -330,9 +425,64 @@
                         y: direction.y * currentKickVelocity
                     }
                 );
+
+                return;
             }
+
+            let redGoal = getCollisionObject('red goal', pair);
+            let blueGoal = getCollisionObject('blue goal', pair);
+
+            if (ball && redGoal) {
+                addBlueScore();
+            }
+
+            if (ball && blueGoal) {
+                addRedScore();
+            }
+
         }
     });
+
+    let addRedScore = function() {
+        scores.red++;
+        resetGame();
+    }
+
+    let addBlueScore = function() {
+        scores.blue++;
+        resetGame();
+    }
+
+
+    let resetGame = function()
+    {
+        goalsfx.play();
+
+        scoreRedElement.innerText = scores.red.toString();
+        scoreBlueElement.innerText = scores.blue.toString();
+        ball.reset();
+
+        addClass(goalElement, 'active');
+
+        setTimeout ( () => {
+            removeClass(goalElement, 'active');
+        }, 2000);
+    }
+
+    function hasClass(ele,cls) {
+        return !!ele.className.match(new RegExp('(\\s|^)'+cls+'(\\s|$)'));
+    }
+
+    function addClass(ele,cls) {
+        if (!hasClass(ele,cls)) ele.className += " "+cls;
+    }
+
+    function removeClass(ele,cls) {
+        if (hasClass(ele,cls)) {
+            let reg = new RegExp('(\\s|^)'+cls+'(\\s|$)');
+            ele.className=ele.className.replace(reg,' ');
+        }
+    }
 
     let getCollisionObject = function (label, pair) {
         if (pair.bodyA.label === label) {

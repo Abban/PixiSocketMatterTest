@@ -29,6 +29,11 @@ export let settings = {
         {x: 1030, y: 646, width: 45, height: 190}
     ],
 
+    goals: [
+        {x: 5, y: 455, width: 45, height: 191, label: 'red goal'},
+        {x: 1050, y: 455, width: 45, height: 191, label: 'blue goal'},
+    ],
+
     paddles: [
         {
             id: 'redGoalie',
