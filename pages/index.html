@@ -278,13 +278,11 @@
                 break;
 
             case 'b':
-                socket.emit('bump');
-
+                Body.setVelocity(ball, {x: Common.random(-10, 10), y: Common.random(-10, 10)});
                 break;
 
             case 'r':
-                // ball.reset();
-                socket.emit('reset');
+                ball.reset();
                 break;
         }
     });
@@ -325,18 +323,13 @@
                     y: direction.y * currentKickVelocity
                 });
 
-                socket.emit('kick', {
-                    x: direction.x * currentKickVelocity,
-                    y: direction.y * currentKickVelocity
-                });
-
-                // Body.setVelocity(
-                //     ball,
-                //     {
-                //         x: direction.x * currentKickVelocity,
-                //         y: direction.y * currentKickVelocity
-                //     }
-                // );
+                Body.setVelocity(
+                    ball,
+                    {
+                        x: direction.x * currentKickVelocity,
+                        y: direction.y * currentKickVelocity
+                    }
+                );
             }
         }
     });
