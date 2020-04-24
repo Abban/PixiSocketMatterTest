@@ -43,6 +43,10 @@ app.get('/sprite-drag', (req, res) => {
     res.sendFile(__dirname + '/pages/sprite-drag.html');
 });
 
+app.get('/collider', (req, res) => {
+    res.sendFile(__dirname + '/pages/collider.html');
+});
+
 let spinner = null;
 let sockets = [];
 io.on('connection', (socket) => {
