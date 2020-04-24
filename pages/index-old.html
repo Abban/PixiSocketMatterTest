@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Kicker</title>
+
+    <style>
+        body {
+            position: relative;
+        }
+        #gui {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div id="gui">
+
+    <div id="usercount">0 Players</div>
+
+</div>
+
+<canvas id="game"></canvas>
+
+<script src="/resources/pixijs/pixi.js"></script>
+<script src="/resources/socket.io/socket.io.js"></script>
+<script>
+    let socket = io.connect('http://localhost:3030', {reconnect: true});
+
+    const canvas = document.getElementById('game');
+    let app = new PIXI.Application({
+        backgroundColor: 0x6AAF1F,
+        view: canvas,
+        width: window.innerWidth,
+        height: window.innerHeight,
+        antialias: true,
+        transparent: false,
+        resolution: 1
+    });
+
+    let sprite = PIXI.Sprite.from('resources/sprites/Red-Man-Kick.png');
+
+    sprite.x = app.renderer.width / 2;
+    sprite.y = app.renderer.height / 2;
+    sprite.anchor.x = 0.5;
+    sprite.anchor.y = 0.5;
+    sprite.interactive = true;
+    app.stage.addChild(sprite);
+
+    socket.on('tick', (rotation) => {
+        sprite.rotation = rotation;
+    });
+
+    const usercount = document.getElementById('usercount');
+    socket.on('user connected', (count) => {
+        usercount.innerText = `${count} Players`;
+    });
+
+    socket.on('user disconnected', (count) => {
+        usercount.innerText = `${count} Players`;
+    });
+
+    sprite.on("mousedown", () => {
+        socket.emit('mousedown');
+    });
+
+    sprite.on("mouseup", () => {
+        socket.emit('mouseup');
+    });
+
+    // socket.on('position', (position) => {
+    //     c
+    // });
+</script>
+</body>
+</html>

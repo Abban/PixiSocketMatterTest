@@ -2,78 +2,358 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Kicker</title>
+    <title>WMDE Kicker</title>
 
     <style>
         body {
-            position: relative;
+            background: #fafafa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        #gui {
-            position: absolute;
-            top: 0;
-            left: 0;
+        #game {
+
+        }
+        #physics {
+            background: url("/resources/sprites/Edge.png") #6AAF1F center center no-repeat !important;
+            display: none;
         }
     </style>
+
 </head>
 <body>
-
-<div id="gui">
-
-    <div id="usercount">0 Players</div>
-
-</div>
-
 <canvas id="game"></canvas>
+<canvas id="physics"></canvas>
 
+<script src="/resources/matter/matter-dev.js"></script>
 <script src="/resources/pixijs/pixi.js"></script>
 <script src="/resources/socket.io/socket.io.js"></script>
-<script>
-    let socket = io.connect('http://localhost:3030', {reconnect: true});
 
+<script type="module">
+    import {settings, PLAYER_TYPE_RED} from "/resources/game/settings.js";
+
+    let socket = io.connect('http://localhost:3030', {reconnect: true});
     const canvas = document.getElementById('game');
+    const physicsCanvas = document.getElementById('physics');
+
+    const ballTexture = PIXI.Texture.from('resources/sprites/Ball.png');
+    const pitchTexture = PIXI.Texture.from('resources/sprites/Pitch.png');
+    const edgeTexture = PIXI.Texture.from('resources/sprites/Edge.png');
+    const bottomHandleTexture = PIXI.Texture.from('resources/sprites/Handle.png');
+    const topHandleTexture = PIXI.Texture.from('resources/sprites/Handle-Top.png');
+    const redManTexture = PIXI.Texture.from('resources/sprites/Red-Man.png');
+    const redManKickTexture = PIXI.Texture.from('resources/sprites/Red-Man-Kick.png');
+    const blueManTexture = PIXI.Texture.from('resources/sprites/Blue-Man.png');
+    const blueManKickTexture = PIXI.Texture.from('resources/sprites/Blue-Man-Kick.png');
+
+    const globalCollisions = 0x0001,
+        noCollisions = 0x0002;
+
+    let currentKickVelocity = settings.kickVelocity.block;
+
+    let Engine = Matter.Engine,
+        World = Matter.World,
+        Render = Matter.Render,
+        Runner = Matter.Runner,
+        Common = Matter.Common,
+        Bodies = Matter.Bodies,
+        Events = Matter.Events,
+        Mouse = Matter.Mouse,
+        MouseConstraint = Matter.MouseConstraint,
+        Constraint = Matter.Constraint,
+        Vector = Matter.Vector,
+        Body = Matter.Body;
+
+    // create engine
+    let engine = Engine.create(),
+        world = engine.world;
+
+    engine.world.gravity.y = 0;
+
+    // Add edges
+    let edgeColliders = [];
+    settings.edges.forEach(edge => {
+        edgeColliders.push(
+            Bodies.rectangle(
+                edge.x + (edge.width / 2),
+                edge.y + (edge.height / 2),
+                edge.width,
+                edge.height,
+                {
+                    isStatic: true,
+                    collisionFilter: {category: globalCollisions},
+                }
+            )
+        );
+    });
+
+    World.add(world, edgeColliders);
+
+    let ball = Bodies.circle(
+        settings.windowCenter.x,
+        settings.windowCenter.y,
+        settings.ball.radius,
+        {
+            restitution: 1,
+            friction: 0,
+            label: 'ball',
+            collisionFilter: {mask: globalCollisions},
+        }
+    );
+
+    ball.reset = function() {
+        Body.setPosition(
+            this,
+            {
+                x: settings.windowCenter.x,
+                y: settings.windowCenter.y
+            }
+        );
+        Body.setVelocity(this, {x: 0, y: 0});
+    }
+
+    World.add(world, ball);
+
+    // create runner
+    let runner = Runner.create();
+    Runner.run(runner, engine);
+
+    // SWAP WITH PIXI?
+    let render = Render.create({
+        canvas: physicsCanvas,
+        element: document.body,
+        engine: engine,
+        options: {
+            width: settings.windowWidth,
+            height: settings.windowHeight,
+            showAngleIndicator: true,
+            wireframes: false,
+        }
+    });
+
+    Render.run(render);
+
     let app = new PIXI.Application({
-        backgroundColor: 0x6AAF1F,
+        backgroundColor: 0xfafafa,
         view: canvas,
-        width: window.innerWidth,
-        height: window.innerHeight,
+        width: settings.windowWidth,
+        height: settings.windowHeight,
         antialias: true,
         transparent: false,
         resolution: 1
     });
 
-    let sprite = PIXI.Sprite.from('resources/sprites/Red-Man-Kick.png');
+    const pitch = new PIXI.Sprite.from(pitchTexture);
+    const ballSprite = new PIXI.Sprite.from(ballTexture);
+    const edge = new PIXI.Sprite.from(edgeTexture);
+    centerSprite(pitch);
+    centerSprite(ballSprite);
+    centerSprite(edge);
 
-    sprite.x = app.renderer.width / 2;
-    sprite.y = app.renderer.height / 2;
-    sprite.anchor.x = 0.5;
-    sprite.anchor.y = 0.5;
-    sprite.interactive = true;
-    app.stage.addChild(sprite);
+    app.stage.addChild(pitch);
+    app.stage.addChild(ballSprite);
 
-    socket.on('tick', (rotation) => {
-        sprite.rotation = rotation;
+    let players = [];
+    settings.paddles.forEach(paddle => {
+        const handleTexture = paddle.type === PLAYER_TYPE_RED ? bottomHandleTexture : topHandleTexture;
+        const playerTexture = paddle.type === PLAYER_TYPE_RED ? redManTexture : blueManTexture;
+        const kickTexture = paddle.type === PLAYER_TYPE_RED ? redManKickTexture : blueManKickTexture;
+
+        const handle = new PIXI.Sprite.from(handleTexture);
+        handle.paddle = paddle;
+        handle.anchor.set(0.5);
+        handle.alpha = 0.9;
+        handle.x = paddle.xPosition;
+        handle.y = settings.windowCenter.y;
+        handle.playerTexture = playerTexture;
+        handle.kickTexture = kickTexture;
+
+        paddle.players.forEach(playerSettings => {
+            const player = new PIXI.Sprite.from(playerTexture);
+            player.setParent(handle);
+            player.anchor.set(0.5);
+            player.x = 0;
+            player.y = playerSettings.yPosition;
+            player.colliderXOffset = 0;
+            player.colliderXOffsetKick = paddle.type === PLAYER_TYPE_RED ? settings.kickColliderOffset : -settings.kickColliderOffset;
+
+            player.collider = Bodies.circle(
+                player.worldTransform.tx,
+                player.worldTransform.ty,
+                settings.kickerRadius,
+                {
+                    mass: 200,
+                    label: 'kicker',
+                    collisionFilter: {category: noCollisions}
+                }
+            );
+
+            World.add(world, player.collider);
+            players.push(player);
+        });
+
+        handle.kick = () => {
+            currentKickVelocity = settings.kickVelocity.kick;
+            handle.children.forEach(player => {
+                player.texture = handle.kickTexture;
+                player.colliderXOffset = player.colliderXOffsetKick;
+            });
+
+            setTimeout(() => {
+                currentKickVelocity = settings.kickVelocity.block;
+                handle.children.forEach(player => {
+                    player.texture = handle.playerTexture;
+                    player.colliderXOffset = 0;
+                });
+            }, 200);
+        }
+
+        app.stage.addChild(handle);
+
+        // make the sprite interactive
+        handle.interactive = true;
+        handle.buttonMode = true;
+
+        handle.on('pointerdown', onPaddleDragStart)
+            .on('pointerup', onPaddleDragEnd)
+            .on('pointerupoutside', onPaddleDragEnd)
+            .on('pointermove', onPaddleDragMove);
     });
 
-    const usercount = document.getElementById('usercount');
-    socket.on('user connected', (count) => {
-        usercount.innerText = `${count} Players`;
+    app.stage.addChild(edge);
+
+    let currentHandle = null;
+
+    function onPaddleDragStart(event) {
+        currentHandle = this;
+        this.data = event.data;
+        this.startPositionY = this.y;
+        this.clickStartPosition = this.data.getLocalPosition(this.parent);
+        this.alpha = 1;
+        this.dragging = true;
+
+        this.children.forEach(player => {
+            player.collider.collisionFilter.category = globalCollisions;
+        });
+    }
+
+    function onPaddleDragEnd() {
+        currentHandle = null;
+        this.alpha = 0.9;
+        this.dragging = false;
+        this.data = null;
+        this.startPositionY = null;
+
+        this.children.forEach(player => {
+            player.collider.collisionFilter.category = noCollisions;
+        });
+    }
+
+    function onPaddleDragMove() {
+        if (!this.dragging) return;
+
+        // const centrePosition = this.position.y - (app.screen.height / 2)
+        // console.log(this.position.y - (app.screen.height / 2));
+
+        const newPosition = this.data.getLocalPosition(this.parent);
+        const newPositionY = this.startPositionY - (this.clickStartPosition.y - newPosition.y);
+
+        if (newPositionY < this.height / 2) return;
+        if (newPositionY > app.screen.height - (this.height / 2)) return;
+
+        this.y = this.startPositionY - (this.clickStartPosition.y - newPosition.y);
+    }
+
+    function centerSprite(sprite) {
+        sprite.anchor.set(0.5);
+        sprite.x = app.screen.width / 2;
+        sprite.y = app.screen.height / 2;
+    }
+
+    window.addEventListener('keydown', (e) => {
+        switch (e.key) {
+            case 'Control':
+                if (currentHandle === null) return;
+                currentHandle.kick();
+                break;
+
+            case 'b':
+                socket.emit('bump');
+
+                break;
+
+            case 'r':
+                // ball.reset();
+                socket.emit('reset');
+                break;
+        }
     });
 
-    socket.on('user disconnected', (count) => {
-        usercount.innerText = `${count} Players`;
+    Events.on(engine, "afterTick", (e) => {
+        ballSprite.x = ball.position.x;
+        ballSprite.y = ball.position.y;
+
+        players.forEach(player => {
+            Body.setPosition(
+                player.collider,
+                {
+                    x: player.worldTransform.tx + player.colliderXOffset,
+                    y: player.worldTransform.ty
+                }
+            );
+        });
     });
 
-    sprite.on("mousedown", () => {
-        socket.emit('mousedown');
+    Events.on(engine, 'collisionStart', function (event) {
+        let pairs = event.pairs;
+
+        // change object colours to show those starting a collision
+        for (let i = 0; i < pairs.length; i++) {
+            let pair = pairs[i];
+
+            let kicker = getCollisionObject('kicker', pair);
+            let ball = getCollisionObject('ball', pair);
+
+            if (kicker && ball) {
+                let direction = Vector.normalise({
+                    x: kicker.position.x - ball.position.x,
+                    y: kicker.position.y - ball.position.y
+                });
+
+                console.log({
+                    x: direction.x * currentKickVelocity,
+                    y: direction.y * currentKickVelocity
+                });
+
+                socket.emit('kick', {
+                    x: direction.x * currentKickVelocity,
+                    y: direction.y * currentKickVelocity
+                });
+
+                // Body.setVelocity(
+                //     ball,
+                //     {
+                //         x: direction.x * currentKickVelocity,
+                //         y: direction.y * currentKickVelocity
+                //     }
+                // );
+            }
+        }
     });
 
-    sprite.on("mouseup", () => {
-        socket.emit('mouseup');
-    });
+    let getCollisionObject = function (label, pair) {
+        if (pair.bodyA.label === label) {
+            return pair.bodyA;
+        }
 
-    // socket.on('position', (position) => {
-    //     c
-    // });
+        if (pair.bodyB.label === label) {
+            return pair.bodyB;
+        }
+
+        return null;
+    }
+
 </script>
+
 </body>
 </html>
